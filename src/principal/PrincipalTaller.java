@@ -104,7 +104,7 @@ public class PrincipalTaller {
 		try {
 			switch (opcionRevision) {
 			case 1:
-				//Alta de revisión
+				// Alta de revisión
 				System.out.println("Vamos a introduir los datos de la fecha.");
 				diaMes = solicitarNumero("Introduce el dia: ");
 				mes = solicitarNumero("Introduce el mes: ");
@@ -115,7 +115,8 @@ public class PrincipalTaller {
 				darAltaRevision(diaMes, mes, anno, textoDescripcion, tipoRevision, matricula);
 				break;
 			case 2:
-				//Consulta de todas las revisiones entre dos fechas(Preguntar por que está mal hecho)
+				// Consulta de todas las revisiones entre dos fechas(Preguntar por que está mal
+				// hecho)
 				diaMes = solicitarNumero("Introduce el dia: ");
 				mes = solicitarNumero("Introduce el mes: ");
 				anno = solicitarNumero("Introduce el año: ");
@@ -123,24 +124,25 @@ public class PrincipalTaller {
 				consultarTodasLasRevisionesEntreFechas(fechaDate);
 				break;
 			case 3:
-				//Consultar las revisiones de un cliente
+				// Consultar las revisiones de un cliente
 				dni = solicitarCadena("Introduce el dni del cliente: ");
 				consultarRevisionesDeUnCliente(dni);
 				break;
 			case 4:
-				//Hacer la media de las revisiones
+				// Hacer la media de las revisiones
 				matricula = solicitarCadena("Introduce la matricula del coche: ");
 				hacerMediaPrecioRevisionesUnCoche(matricula);
 				break;
 			case 5:
-				//Modificar algun dato de la revision del coche
+				// Modificar algun dato de la revision del coche
 				idRevision = solicitarNumero("Introduce el id de la revisión: ");
 				matricula = solicitarCadena("Introduce la matricula del coche: ");
 				System.out.println(matricula);
 				modificarDatoRevisionDeUnCoche(idRevision, matricula);
 				break;
 			case 6:
-				//Borrar la revisión por su id, pero antes buscamos por matricula ese coche para borrar la revisión
+				// Borrar la revisión por su id, pero antes buscamos por matricula ese coche
+				// para borrar la revisión
 				matricula = solicitarCadena("Introduce la matricula del coche: ");
 				borrarRevisionPorSuId(matricula);
 				break;
@@ -152,37 +154,40 @@ public class PrincipalTaller {
 	}
 
 	/**
-	 * Método que sirve para hacer la media del precio de las revisiones de un coche en concreto
+	 * Método que sirve para hacer la media del precio de las revisiones de un coche
+	 * en concreto
+	 * 
 	 * @param matricula del coche para calcular la media
-	 * @throws TallerException false si no encuentra el coche o la lista de revisiones está vacía
+	 * @throws TallerException false si no encuentra el coche o la lista de
+	 *                         revisiones está vacía
 	 */
 	private static void hacerMediaPrecioRevisionesUnCoche(String matricula) throws TallerException {
-		
+
 		double mediaRevisiones, sumaPrecioRevisiones = 0;
-		
+
 		Coche coche = cocheDAO.buscarCochePorMatricula(matricula);
-		
+
 		if (coche == null) {
 			throw new TallerException("Error. No hay coche con esa matricula");
 		}
-		
+
 		List<Revision> listaRevisiones = coche.getListaRevisiones();
-		
-		if(listaRevisiones.isEmpty()) {
+
+		if (listaRevisiones.isEmpty()) {
 			throw new TallerException("Error. El coche con matrícula " + matricula + " no tiene revisiones.");
 		}
-		
+
 		for (Revision revision : listaRevisiones) {
 			double precio = revision.getPrecioRevision();
-			
+
 			sumaPrecioRevisiones = sumaPrecioRevisiones + precio;
 		}
-		
-		mediaRevisiones = sumaPrecioRevisiones/listaRevisiones.size();
-		
-		System.out.println("Coche con matrícula " + matricula 
-				+ ", su media de precio de revisiones es: " + mediaRevisiones + " €.");
-		
+
+		mediaRevisiones = sumaPrecioRevisiones / listaRevisiones.size();
+
+		System.out.println("Coche con matrícula " + matricula + ", su media de precio de revisiones es: "
+				+ mediaRevisiones + " €.");
+
 	}
 
 	/**
@@ -194,7 +199,7 @@ public class PrincipalTaller {
 	 *                         revisión con ese id
 	 */
 
-	//Este método habra que modificarlo para cambiar el dato que diga el usuario
+	// Este método habra que modificarlo para cambiar el dato que diga el usuario
 	private static void modificarDatoRevisionDeUnCoche(int idRevision, String matricula) throws TallerException {
 
 		int diaMesNuevo, mesNuevo, annoNuevo;
@@ -245,14 +250,14 @@ public class PrincipalTaller {
 		if (coche == null) {
 			throw new TallerException("Error. No coche con esa matricula.");
 		}
-		
+
 		List<Revision> listaRevisionesDeUnCoche = coche.getListaRevisiones();
-		
+
 		listaRevisionesDeUnCoche.stream().forEach(revision -> System.out.println(revision));
-		
+
 		idRevision = solicitarNumero("Introduce el id de la revisión a borrar: ");
 
-		//Preguntar a partir de aqui como hacerlo
+		// Preguntar a partir de aqui como hacerlo
 		Revision revisionBorrar = revisionDao.consultarRevisionPorId(idRevision);
 
 		if (revisionBorrar == null) {
@@ -261,7 +266,7 @@ public class PrincipalTaller {
 
 			coche.borrarRevision(revisionBorrar);
 
-			//session.update(coche);
+			// session.update(coche);
 
 			revisionDao.borrar(revisionBorrar);
 
@@ -291,14 +296,15 @@ public class PrincipalTaller {
 		}
 
 		for (Object[] o : listaRevisionesDeUnCliente) {
-			System.out.println(
-					"DNI: " + o[0] + ", Matricula: " + o[1] + ", Revision: " + o[2] + ", Descripcion: " + o[3]);
+			System.out.println("DNI: " + o[0] + ", Matricula: " + o[1] + ", Revision: " + o[2] + ", Fecha: " + o[3]
+					+ ", Descripcion: " + o[4] + ", Precio: " + o[5] + "€.");
 		}
 
 	}
 
 	/**
 	 * Método para consultar todas las revisiones que hay
+	 * 
 	 * @param fechaDate la fecha introducida por el usuario
 	 * 
 	 * @throws TallerException error si la base de datos esta vacía
@@ -306,21 +312,21 @@ public class PrincipalTaller {
 	private static void consultarTodasLasRevisionesEntreFechas(LocalDate fechaDate) throws TallerException {
 
 		List<Revision> listaRevisiones;
-		LocalDate fechaActual = LocalDate.now();
+		int anno, mes, diaMes;
 		
-		//Preguntar que esta mal aqui porque yo no lo veo jeje
-		if(fechaDate.isAfter(fechaActual)) {
-			throw new TallerException("Error. No puedes introducir una fecha superior a la fecha actual.");
-		}else {
-			
-			listaRevisiones = revisionDao.consultarTodasRevisiones(fechaDate, fechaActual);
+		diaMes = solicitarNumero("Introduce el dia: ");
+		mes = solicitarNumero("Introduce el mes: ");
+		anno = solicitarNumero("Introduce el año: ");
+		
+		LocalDate fechaActual = LocalDate.of(anno, mes, diaMes);;
 
-			if (listaRevisiones.isEmpty()) {
-				throw new TallerException("Error. Base de datos vacía");
-			}
+		listaRevisiones = revisionDao.consultarTodasRevisiones(fechaDate, fechaActual);
 
-			listaRevisiones.stream().forEach(revision -> System.out.println(revision));
+		if (listaRevisiones.isEmpty()) {
+			throw new TallerException("Error. Base de datos vacía");
 		}
+
+		listaRevisiones.stream().forEach(revision -> System.out.println(revision));
 
 	}
 
@@ -352,7 +358,7 @@ public class PrincipalTaller {
 		LocalDate fechaDate = null;
 		// Convertimos fecha
 		fechaDate = LocalDate.of(anno, mes, diaMes);// Version ingles
-		
+
 		// Recogemos el tipo de revisión
 		TipoRevision tipoRevisionT = TipoRevision.valueOf(tipoRevision);
 
@@ -375,7 +381,9 @@ public class PrincipalTaller {
 	}
 
 	/**
-	 * Método que sirve para poner un precio según el tipo de revisión que hayamos elegido
+	 * Método que sirve para poner un precio según el tipo de revisión que hayamos
+	 * elegido
+	 * 
 	 * @param tipoRevisionT
 	 * @return
 	 */
@@ -409,7 +417,7 @@ public class PrincipalTaller {
 		try {
 			switch (opcionCoche) {
 			case 1:
-				//Alta a un nuevo coche
+				// Alta a un nuevo coche
 				marca = solicitarCadena("Introduce la marca del coche: ");
 				modelo = solicitarCadena("Introduce el modelo del coche: ");
 				matricula = solicitarCadena("Introduce la matricula del coche(LLLL-NNN):");
@@ -458,13 +466,14 @@ public class PrincipalTaller {
 		}
 
 		listaCochesCliente = cliente.getListaCoches();
-		
-		if(listaCochesCliente.isEmpty()) {
+
+		if (listaCochesCliente.isEmpty()) {
 			throw new TallerException("Error. Este cliente no tiene coches.");
 		}
-		
-		//Preguntar si hacer el print del cliente solamente o solo sus coches
-		System.out.println("Cliente " + cliente.getNombre() + " " + cliente.getApellidos() + " con DNI: " + cliente.getDni());
+
+		// Preguntar si hacer el print del cliente solamente o solo sus coches
+		System.out.println(
+				"Cliente " + cliente.getNombre() + " " + cliente.getApellidos() + " con DNI: " + cliente.getDni());
 		listaCochesCliente.stream().forEach(coche -> System.out.println(coche));
 
 	}
@@ -539,7 +548,6 @@ public class PrincipalTaller {
 			if (confirmacion == 'S') {
 
 				Cliente cliente = coche.getCliente();
-
 
 				cocheDAO.borrar(coche);
 
@@ -656,7 +664,7 @@ public class PrincipalTaller {
 		try {
 			switch (opcionCliente) {
 			case 1:
-				//Alta de un nuevo cliente
+				// Alta de un nuevo cliente
 				nombreCliente = solicitarCadena("Introduce el nombre del cliente: ");
 				apellidosCliente = solicitarCadena("Introduce los apellidos del nuevo cliente: ");
 				dni = solicitarCadena("Introduce el dni del nuevo cliente: ");
@@ -664,21 +672,22 @@ public class PrincipalTaller {
 				break;
 
 			case 2:
-				//Consultar todos los clientes
+				// Consultar todos los clientes
 				consultarTodosClientes();
 				break;
 			case 3:
-				//Consultar todos los clientes que contengan un apellido
+				// Consultar todos los clientes que contengan un apellido
 				apellidosCliente = solicitarCadena("Introduce el apellido del o de los clientes a consultar: ");
 				consultarClientesPorNombre(apellidosCliente);
 				break;
 			case 4:
-				//Modificar algun dato del cliente
+				// Modificar algun dato del cliente
 				dni = solicitarCadena("Introduce el dni del cliente a modificar: ");
 				modificarNombreOApellidosDeCliente(dni);
 				break;
 			case 5:
-				//Borrar el cliente por su DNI, se borrará también la lista de coches del cliente elegido
+				// Borrar el cliente por su DNI, se borrará también la lista de coches del
+				// cliente elegido
 				dni = solicitarCadena("Introduce el dni del cliente que quieres borrar: ");
 				borrarClientePorDni(dni);
 				break;
@@ -708,7 +717,7 @@ public class PrincipalTaller {
 
 			if (confirmacion == 'S') {
 				clienteDAO.borrar(cliente);
-				//session.refresh(cliente);
+				// session.refresh(cliente);
 			}
 
 			System.out.println("\nCliente borrado correctamente.");
