@@ -25,7 +25,7 @@ public class ClienteDao extends DaoGenerico<Cliente> {
 
 		List<Cliente> listaClientesNombres;
 
-		Query query = session.createQuery("SELECT c FROM Cliente c WHERE Apellidos  LIKE'%" + apellidos + "%'");
+		Query query = session.createQuery("SELECT c FROM Cliente c WHERE Apellidos  LIKE'%" + apellidos + "%' ORDER BY c.dni desc");
 		listaClientesNombres = query.list();
 
 		return listaClientesNombres;

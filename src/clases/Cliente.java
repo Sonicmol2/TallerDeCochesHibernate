@@ -24,10 +24,10 @@ import org.hibernate.validator.constraints.NotBlank;
 
 @Entity()
 @Table(name = "Cliente")
-public class Cliente implements Serializable{
+public class Cliente implements Serializable {
 
 	private static final long serialVersionUID = 1L;
-	
+
 	@Id
 	@Column(name = "DNI")
 	@NotBlank
@@ -40,20 +40,20 @@ public class Cliente implements Serializable{
 	@Column(name = "Apellidos")
 	@Size(min = 3, max = 30)
 	private String apellidos;
-	
+
 	@OneToMany
 	@Cascade(org.hibernate.annotations.CascadeType.ALL)
 	@JoinColumn(name = "Cliente_Pertenece")
 	private List<Coche> listaCoches;
 
 	public Cliente(String nombre, String apellidos, String dni) {
-		
+
 		this.nombre = nombre;
 		this.apellidos = apellidos;
 		this.dni = dni;
 		this.listaCoches = new LinkedList<Coche>();
 	}
-	
+
 	public Cliente() {
 		this.listaCoches = new LinkedList<Coche>();
 	}
@@ -117,18 +117,20 @@ public class Cliente implements Serializable{
 
 	@Override
 	public String toString() {
-		return "Cliente \n\tNombre: " + nombre 
-				+ " \n\tApellidos: " + apellidos 
-				+ " \n\tdni: " + dni
+		return "Cliente \n\tNombre: " + nombre + " \n\tApellidos: " + apellidos + " \n\tdni: " + dni
 				+ " \n\tListaCoches: " + listaCoches + "\n";
 	}
 
 	public void annadirCoche(Coche coche) {
-		
+
 		this.listaCoches.add(coche);
-		
+
 	}
-	
-	
-	
+
+	public void borrarCoche(Coche coche) {
+
+		this.listaCoches.remove(coche);
+
+	}
+
 }

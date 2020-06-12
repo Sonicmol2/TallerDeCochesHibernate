@@ -36,24 +36,6 @@ public class CocheDao extends DaoGenerico<Coche> {
 
 		return coche;
 	}
-	
-	public static void cambiarMatricula(Coche coche, String nuevaMatricula) throws TallerException {
-		
-		Session session = HibernateUtil.getSessionFactory().getCurrentSession();
-		
-		Coche c = new Coche();
-		c.setCliente(coche.getCliente());
-		c.setMarca(coche.getMarca());
-		c.setModelo(coche.getModelo());
-		c.setListaRevisiones(coche.getListaRevisiones());
-		c.setMatricula(nuevaMatricula);
-		
-		session.delete(coche);
-		
-		session.save(c);
-		
-		session.getTransaction().commit();
-	}
 
 
 	public List<Coche> consultarCochesCliente(String dniCliente) {

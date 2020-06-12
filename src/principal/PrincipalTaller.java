@@ -15,9 +15,13 @@ import dao.RevisionDao;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
+
+import javax.swing.text.DateFormatter;
 
 import org.hibernate.Query;
 import org.hibernate.Session;
@@ -99,29 +103,26 @@ public class PrincipalTaller {
 	private static void tratarMenuRevision(int opcionRevision) throws TallerException {
 
 		String textoDescripcion, tipoRevision, matricula, dni;
-		int anno, mes, diaMes, idRevision;
+		int idRevision;
+		LocalDate fechaDate;
 
 		try {
 			switch (opcionRevision) {
 			case 1:
 				// Alta de revisión
-				System.out.println("Vamos a introduir los datos de la fecha.");
-				diaMes = solicitarNumero("Introduce el dia: ");
-				mes = solicitarNumero("Introduce el mes: ");
-				anno = solicitarNumero("Introduce el año: ");
+				System.out.println("Vamos a introduir los datos de la revisión.");
+				fechaDate = solicitarYFormatearFecha("Introduce la fecha(dd-MM-yyyy): ");
 				textoDescripcion = solicitarCadena("Introduce la descripción de la revisión: ");
-				tipoRevision = solicitarCadena("Introduce el tipo de revisión(Aceite, ruedas, motor, electronica): ");
+				tipoRevision = solicitarCadena("Introduce el tipo de revisión(Aceite, ruedas, motor, electronica): ")
+						.toUpperCase();
 				matricula = solicitarCadena("Introduce la matricula del coche de la revisión: ");
-				darAltaRevision(diaMes, mes, anno, textoDescripcion, tipoRevision, matricula);
+				darAltaRevision(fechaDate, textoDescripcion, tipoRevision, matricula);
 				break;
 			case 2:
 				// Consulta de todas las revisiones entre dos fechas(Preguntar por que está mal
 				// hecho)
-				diaMes = solicitarNumero("Introduce el dia: ");
-				mes = solicitarNumero("Introduce el mes: ");
-				anno = solicitarNumero("Introduce el año: ");
-				LocalDate fechaDate = LocalDate.of(anno, mes, diaMes);
-				consultarTodasLasRevisionesEntreFechas(fechaDate);
+				System.out.println("Vamos a introducir dos fechas para mostrar revisiones entre las 2 fechas.");
+				consultarTodasLasRevisionesEntreFechas();
 				break;
 			case 3:
 				// Consultar las revisiones de un cliente
@@ -135,10 +136,9 @@ public class PrincipalTaller {
 				break;
 			case 5:
 				// Modificar algun dato de la revision del coche
-				idRevision = solicitarNumero("Introduce el id de la revisión: ");
 				matricula = solicitarCadena("Introduce la matricula del coche: ");
 				System.out.println(matricula);
-				modificarDatoRevisionDeUnCoche(idRevision, matricula);
+				modificarDatoRevisionDeUnCoche(matricula);
 				break;
 			case 6:
 				// Borrar la revisión por su id, pero antes buscamos por matricula ese coche
@@ -171,19 +171,7 @@ public class PrincipalTaller {
 			throw new TallerException("Error. No hay coche con esa matricula");
 		}
 
-		List<Revision> listaRevisiones = coche.getListaRevisiones();
-
-		if (listaRevisiones.isEmpty()) {
-			throw new TallerException("Error. El coche con matrícula " + matricula + " no tiene revisiones.");
-		}
-
-		for (Revision revision : listaRevisiones) {
-			double precio = revision.getPrecioRevision();
-
-			sumaPrecioRevisiones = sumaPrecioRevisiones + precio;
-		}
-
-		mediaRevisiones = sumaPrecioRevisiones / listaRevisiones.size();
+		mediaRevisiones = revisionDao.hacerMediaRevisiones(matricula);
 
 		System.out.println("Coche con matrícula " + matricula + ", su media de precio de revisiones es: "
 				+ mediaRevisiones + " €.");
@@ -200,10 +188,10 @@ public class PrincipalTaller {
 	 */
 
 	// Este método habra que modificarlo para cambiar el dato que diga el usuario
-	private static void modificarDatoRevisionDeUnCoche(int idRevision, String matricula) throws TallerException {
+	private static void modificarDatoRevisionDeUnCoche(String matricula) throws TallerException {
 
-		int diaMesNuevo, mesNuevo, annoNuevo;
-		LocalDate fechaNueva;
+		int opcion, idRevision;
+		char confirmar;
 
 		Coche coche = cocheDAO.buscarCochePorMatricula(matricula);
 
@@ -211,27 +199,82 @@ public class PrincipalTaller {
 			throw new TallerException("Error. No hay coche con esa matricula");
 		}
 
+		List<Revision> listaRevisionesDeUnCoche = coche.getListaRevisiones();
+
+		listaRevisionesDeUnCoche.stream().forEach(revision -> System.out.println(revision));
+
+		idRevision = solicitarNumero("Introduce el id de la revisión a modificar: ");
+
 		Revision revision = revisionDao.consultarRevisionPorId(idRevision);
 
 		if (revision == null) {
 			throw new TallerException("Error. No hay revision con esa id");
 		}
 
-		System.out.println("Introduce la nueva fecha.");
-		diaMesNuevo = solicitarNumero("Introduce el dia nuevo: ");
-		mesNuevo = solicitarNumero("Introduce el mes nuevo: ");
-		annoNuevo = solicitarNumero("Introduce el nuevo año: ");
+		do {
+			opcion = mostrarMenuCambiarDatosRevision();
 
-		// Convertimos la nueva fecha para cambiarla
-		fechaNueva = LocalDate.of(annoNuevo, mesNuevo, diaMesNuevo);
+			revision = cambiarDatosRevision(opcion, revision);
 
-		revision.setFecha(fechaNueva);
+			confirmar = solicitarConfirmacion("¿Quieres seguir modificando datos de la revisión?(S/N): ");
+		} while (confirmar == 'S');
 
 		revisionDao.guardar(revision);
 
-		System.out.println("\nFecha de la revisión modificada correctamente.");
+		System.out.println("\nLos datos se han modificado correctamente.");
 		System.out.println();
 		System.out.println(revision + "\n");
+
+	}
+
+	private static Revision cambiarDatosRevision(int opcion, Revision revision) {
+
+		LocalDate fechaNueva;
+		int diaMesNuevo, mesNuevo, annoNuevo;
+		String nuevaDescripcion, tipoRevisionNueva;
+		double precioNuevo;
+
+		switch (opcion) {
+		case 1:
+			System.out.println("Introduce la nueva fecha.");
+			diaMesNuevo = solicitarNumero("Introduce el dia nuevo: ");
+			mesNuevo = solicitarNumero("Introduce el mes nuevo: ");
+			annoNuevo = solicitarNumero("Introduce el nuevo año: ");
+			// Convertimos la nueva fecha para cambiarla
+			fechaNueva = LocalDate.of(annoNuevo, mesNuevo, diaMesNuevo);
+			revision.setFecha(fechaNueva);
+			break;
+		case 2:
+			nuevaDescripcion = solicitarCadena("Introduce la nueva descripción de la revisión: ");
+			revision.setDescripcion(nuevaDescripcion);
+			break;
+		case 3:
+			tipoRevisionNueva = solicitarCadena("Introduce el nuevo tipo de la revisión: ");
+			TipoRevision tipoRevisionNu = TipoRevision.valueOf(tipoRevisionNueva);
+			precioNuevo = ponerPrecioDeRevision(tipoRevisionNu);
+			revision.setTipoRevision(tipoRevisionNu);
+			revision.setPrecioRevision(precioNuevo);
+			break;
+		}
+
+		return revision;
+	}
+
+	private static int mostrarMenuCambiarDatosRevision() {
+		int opcion = 0;
+
+		do {
+			System.out.println("¿Que quieres modificar de la revision?\n");
+			System.out.println("\t|1| Cambiar la fecha de la revisión: ");
+			System.out.println("\t|2| Cambiar la descripción de la revisión: ");
+			System.out.println("\t|3| Cambiar tipo de Revisión(Al cambiarse se cambiara también el precio): ");
+			System.out.println("\nIntroduce la opción: ");
+
+			opcion = Integer.parseInt(teclado.nextLine());
+
+		} while (opcion < 1 || opcion > 3);
+
+		return opcion;
 
 	}
 
@@ -265,9 +308,6 @@ public class PrincipalTaller {
 		} else {
 
 			coche.borrarRevision(revisionBorrar);
-
-			// session.update(coche);
-
 			revisionDao.borrar(revisionBorrar);
 
 		}
@@ -295,8 +335,9 @@ public class PrincipalTaller {
 			throw new TallerException("Error. Ese cliente no tiene revisiones.");
 		}
 
+		// Preguntar como parsear para que muestre las fechas bien
 		for (Object[] o : listaRevisionesDeUnCliente) {
-			System.out.println("DNI: " + o[0] + ", Matricula: " + o[1] + ", Revision: " + o[2] + ", Fecha: " + o[3]
+			System.out.println("DNI: " + o[0] + ",\n\t Matricula: " + o[1] + ", Revision: " + o[2] + ", Fecha: " + o[3]
 					+ ", Descripcion: " + o[4] + ", Precio: " + o[5] + "€.");
 		}
 
@@ -305,22 +346,18 @@ public class PrincipalTaller {
 	/**
 	 * Método para consultar todas las revisiones que hay
 	 * 
-	 * @param fechaDate la fecha introducida por el usuario
-	 * 
 	 * @throws TallerException error si la base de datos esta vacía
 	 */
-	private static void consultarTodasLasRevisionesEntreFechas(LocalDate fechaDate) throws TallerException {
+	private static void consultarTodasLasRevisionesEntreFechas() throws TallerException {
 
 		List<Revision> listaRevisiones;
-		int anno, mes, diaMes;
-		
-		diaMes = solicitarNumero("Introduce el dia: ");
-		mes = solicitarNumero("Introduce el mes: ");
-		anno = solicitarNumero("Introduce el año: ");
-		
-		LocalDate fechaActual = LocalDate.of(anno, mes, diaMes);;
+		LocalDate fechaStart = null;
+		LocalDate fechaEnd = null;
 
-		listaRevisiones = revisionDao.consultarTodasRevisiones(fechaDate, fechaActual);
+		fechaStart = solicitarYFormatearFecha("Introduce la primera fecha(dd-mm-aaaa): ");
+		fechaEnd = solicitarYFormatearFecha("Introduce la segunda fecha(dd-mm-aaaa): ");
+
+		listaRevisiones = revisionDao.consultarTodasRevisionesEntreDosFechas(fechaStart, fechaEnd);
 
 		if (listaRevisiones.isEmpty()) {
 			throw new TallerException("Error. Base de datos vacía");
@@ -330,8 +367,33 @@ public class PrincipalTaller {
 
 	}
 
+	private static LocalDate solicitarYFormatearFecha(String msg) {
+
+		boolean esCorrecta;
+		String fechaCadena;
+		LocalDate fechaFormateada = null;
+
+		DateTimeFormatter formato = DateTimeFormatter.ofPattern("dd-MM-yyyy");
+
+		do {
+			try {
+				System.out.println(msg);
+				fechaCadena = teclado.nextLine();
+				fechaFormateada = LocalDate.parse(fechaCadena, formato);
+				esCorrecta = true;
+			} catch (DateTimeParseException ex) {
+				System.out.println("Formato fecha incorrecto.");
+				esCorrecta = false;
+			}
+		} while (esCorrecta == false);
+
+		return fechaFormateada;
+	}
+
 	/**
 	 * Método para dar de alta a la revisión de un coche
+	 * 
+	 * @param fechaDate2
 	 * 
 	 * @param diaMes           dia de la fecha
 	 * @param mes              de la fecha
@@ -344,10 +406,12 @@ public class PrincipalTaller {
 	 */
 
 	// El precio no tengo que pedirlo se pone automaticamente
-	private static void darAltaRevision(int diaMes, int mes, int anno, String textoDescripcion, String tipoRevision,
+	private static void darAltaRevision(LocalDate fechaDate, String textoDescripcion, String tipoRevision,
 			String matricula) throws TallerException {
 
 		double precioRevision = 0;
+
+		LocalDate fechaActual = LocalDate.now();// Cogemos fecha actual
 
 		Coche coche = cocheDAO.buscarCochePorMatricula(matricula);
 
@@ -355,28 +419,32 @@ public class PrincipalTaller {
 			throw new TallerException("Error. No hay coche con esa matricula.");
 		}
 
-		LocalDate fechaDate = null;
-		// Convertimos fecha
-		fechaDate = LocalDate.of(anno, mes, diaMes);// Version ingles
+		if (fechaDate.isBefore(fechaActual)) {
+			throw new TallerException("Error. No puedes introducir una fecha anterior a la fecha de hoy(actual).");
+		} else {
+			// Recogemos el tipo de revisión
+			if (tipoRevision.isEmpty()) {
+				throw new TallerException("Error. No puedes dejar el dato tipo revisión vacío.");
+			} else {
+				TipoRevision tipoRevisionT = TipoRevision.valueOf(tipoRevision);
 
-		// Recogemos el tipo de revisión
-		TipoRevision tipoRevisionT = TipoRevision.valueOf(tipoRevision);
+				precioRevision = ponerPrecioDeRevision(tipoRevisionT);
 
-		precioRevision = ponerPrecioDeRevision(tipoRevisionT);
+				// Creamos la nueva revisión
+				Revision revision = new Revision(fechaDate, textoDescripcion, tipoRevisionT, precioRevision, coche);
 
-		// Creamos la nueva revisión
-		Revision revision = new Revision(fechaDate, textoDescripcion, tipoRevisionT, precioRevision, coche);
+				// Añadimos la nueva revisión a la lista de revisiones del coche
+				coche.annadirRevision(revision);
 
-		// Añadimos la nueva revisión a la lista de revisiones del coche
-		coche.annadirRevision(revision);
+				// Guardamos el coche para asi crear la nueva revisión y también actualizar la
+				// lista de las revisiones
+				cocheDAO.guardar(coche);
 
-		// Guardamos el coche para asi crear la nueva revisión y también actualizar la
-		// lista de las revisiones
-		cocheDAO.guardar(coche);
-
-		System.out.println("\nRevisión creada correctamente.");
-		System.out.println();
-		System.out.println(revision);
+				System.out.println("\nRevisión creada correctamente.");
+				System.out.println();
+				System.out.println(revision);
+			}
+		}
 
 	}
 
@@ -442,6 +510,7 @@ public class PrincipalTaller {
 				// Modificar cualquier dato(Preguntar no se hacerlo)
 				matricula = solicitarCadena("Introduce la matricula del coche a modificar(LLLL-NNN):");
 				modificarDatoDeUnCoche(matricula);
+				break;
 			case 6:
 				// Borrar el coche
 				matricula = solicitarCadena("Introduce la matricula del coche a borrar(LLLL-NNN):");
@@ -549,6 +618,8 @@ public class PrincipalTaller {
 
 				Cliente cliente = coche.getCliente();
 
+				cliente.borrarCoche(coche);
+
 				cocheDAO.borrar(coche);
 
 				System.out.println("\nCoche borrado correctamente.");
@@ -568,6 +639,8 @@ public class PrincipalTaller {
 	private static void modificarDatoDeUnCoche(String matricula) throws TallerException {
 
 		String nuevaModelo;
+		int opcion = 0;
+		char confirmar = 0;
 
 		Coche coche = cocheDAO.buscarCochePorMatricula(matricula);
 
@@ -575,9 +648,13 @@ public class PrincipalTaller {
 			throw new TallerException("Error. Lo sentimos no hay coches con esa matrícula.");
 		}
 
-		nuevaModelo = solicitarCadena("Introduce el modelo del coche: ");
+		do {
+			opcion = mostrarCambiosDatosCoche();
 
-		coche.setModelo(nuevaModelo);
+			coche = cambiarDatosDelCoche(coche, opcion);
+
+			confirmar = solicitarConfirmacion("¿Quieres seguir cambiando datos(S/N)?: ");
+		} while (confirmar == 'S');
 
 		cocheDAO.guardar(coche);
 
@@ -587,6 +664,40 @@ public class PrincipalTaller {
 		System.out.println();
 		System.out.println(coche + "\n");
 
+	}
+
+	private static Coche cambiarDatosDelCoche(Coche coche, int opcion) throws TallerException {
+
+		String marcaCoche, modeloCoche;
+
+		switch (opcion) {
+		case 1:
+			marcaCoche = solicitarCadena("Introduce la nueva marca del coche: ");
+			coche.setMarca(marcaCoche);
+			break;
+		case 2:
+			modeloCoche = solicitarCadena("Introduce el nuevo modelo del coche: ");
+			coche.setModelo(modeloCoche);
+			break;
+		}
+
+		return coche;
+	}
+
+	private static int mostrarCambiosDatosCoche() {
+
+		int opcion = 0;
+
+		do {
+			System.out.println("¿Que quieres modificar del coche?\n");
+			System.out.println("\t|1| Cambiar solamente la marca del coche: ");
+			System.out.println("\t|2| Cambiar solamente el modelo del coche: ");
+			System.out.println("\nIntroduce la opción: ");
+
+			opcion = Integer.parseInt(teclado.nextLine());
+
+		} while (opcion < 1 || opcion > 2);
+		return opcion;
 	}
 
 	/**
@@ -678,7 +789,7 @@ public class PrincipalTaller {
 			case 3:
 				// Consultar todos los clientes que contengan un apellido
 				apellidosCliente = solicitarCadena("Introduce el apellido del o de los clientes a consultar: ");
-				consultarClientesPorNombre(apellidosCliente);
+				consultarClientesPorApellidos(apellidosCliente);
 				break;
 			case 4:
 				// Modificar algun dato del cliente
@@ -734,7 +845,7 @@ public class PrincipalTaller {
 	 */
 	private static void modificarNombreOApellidosDeCliente(String dni) throws TallerException {
 
-		String nombreNuevo;
+		int opcion = 0;
 		// Buscamos el cliente con ese dni
 		Cliente cliente = clienteDAO.buscarClientePorDni(dni);
 
@@ -742,23 +853,73 @@ public class PrincipalTaller {
 			throw new TallerException("Error. No se ha encontrado el cliente con ese dni.");
 		}
 
-		// Pedimos el nuevo nombre del cliente
-		nombreNuevo = solicitarCadena("Introduce el nuevo nombre del cliente: ");
+		opcion = mostrarOpcionesCambiarDatos();
 
-		cliente.setNombre(nombreNuevo);
+		// Puedo meterlo dentro de un método
+		cliente = cambiarDatosCliente(opcion, cliente);
 
 		clienteDAO.guardar(cliente);
 
-		System.out.println("\nNombre del cliente modificado correctamente.");
+		System.out.println("\nDatos del cliente modificados correctamente.");
 		System.out.println();
 		System.out.println(cliente + "\n");
 
 	}
 
+	private static int mostrarOpcionesCambiarDatos() {
+
+		int opcion = 0;
+
+		do {
+			System.out.println("¿Que quieres modificar?\n");
+			System.out.println("\t|1| Cambiar solamente el nombre del cliente: ");
+			System.out.println("\t|2| Cambiar solamente los apellidos del cliente: ");
+			System.out.println("\t|3| Cambiar nombre y apellidos: ");
+			System.out.println("\nIntroduce la opción: ");
+
+			opcion = Integer.parseInt(teclado.nextLine());
+
+		} while (opcion < 1 || opcion > 3);
+		return opcion;
+	}
+
+	/**
+	 * Método para cambiar los datos de un cliente
+	 * 
+	 * @param opcion  que elegimos para cambiar los datos
+	 * @param cliente que se va a modificar los datos
+	 * @return cliente con los datos ya modificados
+	 */
+	private static Cliente cambiarDatosCliente(int opcion, Cliente cliente) {
+
+		String nombreNuevo, nuevosApellidos;
+
+		switch (opcion) {
+		case 1:
+			// Pedimos el nuevo nombre del cliente
+			nombreNuevo = solicitarCadena("Introduce el nuevo nombre del cliente: ");
+			cliente.setNombre(nombreNuevo);
+			break;
+		case 2:
+			// Pedimos el nuevo nombre del cliente
+			nuevosApellidos = solicitarCadena("Introduce los nuevos apellidos del cliente: ");
+			cliente.setApellidos(nuevosApellidos);
+			break;
+		case 3:
+			nombreNuevo = solicitarCadena("Introduce el nuevo nombre del cliente: ");
+			nuevosApellidos = solicitarCadena("Introduce los nuevos apellidos del cliente: ");
+			cliente.setNombre(nombreNuevo);
+			cliente.setApellidos(nuevosApellidos);
+			break;
+		}
+
+		return cliente;
+	}
+
 	/**
 	 * Método para consultar todos los clientes
 	 * 
-	 * @throws TallerException si no hya clientes en la base de datos
+	 * @throws TallerException si no hay clientes en la base de datos
 	 */
 	public static void consultarTodosClientes() throws TallerException {
 
@@ -782,13 +943,18 @@ public class PrincipalTaller {
 	 * @param nombre de los clientes a buscar
 	 * @return una lista con todos los clientes con ese nombre
 	 */
-	private static void consultarClientesPorNombre(String apellido) throws TallerException {
+	private static void consultarClientesPorApellidos(String apellido) throws TallerException {
 
 		List<Cliente> listaClientes;
 
 		listaClientes = clienteDAO.consultarClientesPorApellidos(apellido);
 
 		// Si la lista esta vacia es que no hay clientes
+
+		if (apellido.length() == 0) {
+			throw new TallerException("Error. No puedes dejar los datos vacios.");
+		}
+
 		if (listaClientes.isEmpty()) {
 			throw new TallerException("Error. No hay clientes con ese apellido.");
 		}

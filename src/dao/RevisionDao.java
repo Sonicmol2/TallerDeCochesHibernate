@@ -51,18 +51,6 @@ public class RevisionDao extends DaoGenerico<Revision> {
 		Session session2 = HibernateUtil.getSessionFactory().getCurrentSession();
 		
 		List<Object[]> listaRevisionesDeUnCliente = null;
-		
-//		String sentenciaSQL = "select c.DNI as \"DNI Cliente\", co.Matricula as \"Matricula Coche\", r.idRevision as \"Cod. Revision\", r.Descripcion as \"Descripción\" "
-//				+ "from Cliente c inner join Coche co on c.DNI = co.Cliente_Pertenece inner join Revision r on co.Matricula = r.Matricula_Revisiones "
-//				+ "where c.DNI = '" + dni + "'";
-
-		// Consulta las revisiones de un cliente
-//		Query query = session2.createQuery(
-//				"SELECT c.dni, co.matricula, r.idRevision, r.descripcion, r.precioRevision FROM Revision r JOIN r.coche co JOIN"
-//						+ " co.cliente c WHERE co.cliente = '" + dni + "' ORDER BY r.fecha desc");
-		
-//		Query query2 = session2
-//		.createSQLQuery(sentenciaSQL);
 
 		// Consulta las revisiones de un cliente
 		
@@ -77,17 +65,27 @@ public class RevisionDao extends DaoGenerico<Revision> {
 
 	}
 
-	public List<Revision> consultarTodasRevisiones(LocalDate fechaDate, LocalDate fechaActual) {
+	public List<Revision> consultarTodasRevisionesEntreDosFechas(LocalDate fechaStart, LocalDate fechaEnd) {
 
 		Session session2 = HibernateUtil.getSessionFactory().getCurrentSession();
 
 		List<Revision> listaRevisiones;
 
-		Query query = session2.createQuery("SELECT r FROM Revision r WHERE r.fecha BETWEEN '" + fechaDate + "' AND '"
-				+ fechaActual + "' ORDER BY r.fecha desc");
+		Query query = session2.createQuery("SELECT r FROM Revision r WHERE fecha BETWEEN :start AND :end ORDER BY r.fecha desc");
+		query.setParameter("start", fechaStart);
+		query.setParameter("end", fechaEnd);
 
 		listaRevisiones = query.list();
 
 		return listaRevisiones;
+	}
+
+	public double hacerMediaRevisiones(String matricula) {
+		Session session2 = HibernateUtil.getSessionFactory().getCurrentSession();
+		
+		String sentenciaSQL ="SELECT avg(Precio_Revision) FROM Revision r WHERE r.Matricula_Revisiones = '" + matricula + "'";
+		
+		return (double) session2.createSQLQuery(sentenciaSQL).uniqueResult();
+
 	}
 }
