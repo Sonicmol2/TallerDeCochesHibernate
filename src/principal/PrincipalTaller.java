@@ -1078,6 +1078,7 @@ public class PrincipalTaller {
 		int opcion = 0;
 
 		do {
+			System.out.println("PROYECTO HIBERNATE");
 			System.out.println("[1] Cliente");
 			System.out.println("[2] Coche");
 			System.out.println("[3] Revision");

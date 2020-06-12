@@ -10,7 +10,6 @@ import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.EnumType;
 import javax.persistence.Enumerated;
-import javax.persistence.FetchType;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
@@ -34,7 +33,7 @@ public class Revision implements Serializable{
 	@Column(name = "Fecha")
 	private LocalDate fecha;
 	@Column(name = "Descripcion")
-	@Size(min = 3, max = 30)
+	@Size(min = 3, max = 45)
 	private String descripcion;
 	@Column(name = "Tipo_Revision")
 	@Enumerated(EnumType.STRING)
