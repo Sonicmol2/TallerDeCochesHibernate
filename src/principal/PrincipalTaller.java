@@ -296,25 +296,33 @@ public class PrincipalTaller {
 
 		List<Revision> listaRevisionesDeUnCoche = coche.getListaRevisiones();
 
-		listaRevisionesDeUnCoche.stream().forEach(revision -> System.out.println(revision));
+		if(listaRevisionesDeUnCoche.isEmpty()) {
+			throw new TallerException("Error. No tiene revisiones");
+		}else {
+			
+			listaRevisionesDeUnCoche.stream().forEach(revision -> System.out.println(revision));
+			idRevision = solicitarNumero("Introduce el id de la revisión a borrar: ");
 
-		idRevision = solicitarNumero("Introduce el id de la revisión a borrar: ");
+			Revision revisionBorrar = revisionDao.consultarRevisionPorId(idRevision);
 
-		// Preguntar a partir de aqui como hacerlo
-		Revision revisionBorrar = revisionDao.consultarRevisionPorId(idRevision);
+			if (revisionBorrar == null) {
+				throw new TallerException("Error. No hay revisión con ese id");
+			} else {
+				revisionBorrar.setCoche(null);
+				coche.borrarRevision(revisionBorrar);
+				
+				revisionDao.borrar(revisionBorrar);
+				
+				cocheDAO.guardar(coche);
+				session.evict(coche);
 
-		if (revisionBorrar == null) {
-			throw new TallerException("Error. No hay revisión con ese id");
-		} else {
+			}
 
-			coche.borrarRevision(revisionBorrar);
-			revisionDao.borrar(revisionBorrar);
-
+			System.out.println("\nRevisión borrada correctamente.");
+			System.out.println();
+			System.out.println(revisionBorrar + "\n");
 		}
-
-		System.out.println("\nRevisión borrada correctamente.");
-		System.out.println();
-		System.out.println(revisionBorrar + "\n");
+		
 	}
 
 	/**
@@ -426,23 +434,33 @@ public class PrincipalTaller {
 			if (tipoRevision.isEmpty()) {
 				throw new TallerException("Error. No puedes dejar el dato tipo revisión vacío.");
 			} else {
-				TipoRevision tipoRevisionT = TipoRevision.valueOf(tipoRevision);
+				try {
+					TipoRevision tipoRevisionT = TipoRevision.valueOf(tipoRevision);
+					
+					precioRevision = ponerPrecioDeRevision(tipoRevisionT);
 
-				precioRevision = ponerPrecioDeRevision(tipoRevisionT);
+					// Creamos la nueva revisión
+					Revision revision = new Revision(fechaDate, textoDescripcion, tipoRevisionT, precioRevision, coche);
 
-				// Creamos la nueva revisión
-				Revision revision = new Revision(fechaDate, textoDescripcion, tipoRevisionT, precioRevision, coche);
+					// Añadimos la nueva revisión a la lista de revisiones del coche
+					coche.annadirRevision(revision);
 
-				// Añadimos la nueva revisión a la lista de revisiones del coche
-				coche.annadirRevision(revision);
+					// Guardamos el coche para asi crear la nueva revisión y también actualizar la
+					// lista de las revisiones
+					cocheDAO.guardar(coche);
 
-				// Guardamos el coche para asi crear la nueva revisión y también actualizar la
-				// lista de las revisiones
-				cocheDAO.guardar(coche);
+					session.evict(revision);
+					session.evict(coche);
 
-				System.out.println("\nRevisión creada correctamente.");
-				System.out.println();
-				System.out.println(revision);
+					System.out.println("\nRevisión creada correctamente.");
+					System.out.println();
+					System.out.println(revision);
+				}catch(IllegalArgumentException e) {
+					System.out.println("No existe ese tipo de revisison");
+				}
+				
+
+				
 			}
 		}
 
@@ -622,6 +640,9 @@ public class PrincipalTaller {
 
 				cocheDAO.borrar(coche);
 
+				session.evict(coche);
+				session.evict(cliente);
+
 				System.out.println("\nCoche borrado correctamente.");
 				System.out.println();
 				System.out.println(coche + "\n");
@@ -754,6 +775,9 @@ public class PrincipalTaller {
 		// Guardamos el cliente con el coche ya metido en la lista
 		clienteDAO.guardar(cliente);
 
+		session.evict(coche);
+		session.evict(cliente);
+
 		System.out.println("\nCoche creado correctamente.");
 		System.out.println();
 		System.out.println(coche);
@@ -828,7 +852,7 @@ public class PrincipalTaller {
 
 			if (confirmacion == 'S') {
 				clienteDAO.borrar(cliente);
-				// session.refresh(cliente);
+				session.evict(cliente);
 			}
 
 			System.out.println("\nCliente borrado correctamente.");
@@ -989,6 +1013,8 @@ public class PrincipalTaller {
 			clienteNuevo = new Cliente(nombreCliente, apellidosCliente, dni);
 
 			clienteDAO.guardar(clienteNuevo);
+
+			session.evict(clienteNuevo);
 		}
 
 		System.out.println("\nCliente creado correctamente.");
@@ -1014,7 +1040,7 @@ public class PrincipalTaller {
 			System.out.println("[6] Borrar revision.");
 			System.out.println("[7] Salir");
 
-			opcion = Integer.parseInt(teclado.nextLine());
+			opcion = solicitarNumero("Introduce la opción:");
 		} while (opcion < 1 || opcion > 7);
 
 		return opcion;
@@ -1038,7 +1064,7 @@ public class PrincipalTaller {
 			System.out.println("[6] Borrar coche por su matrícula.");
 			System.out.println("[7] Salir");
 
-			opcion = Integer.parseInt(teclado.nextLine());
+			opcion = solicitarNumero("Introduce la opción:");
 
 		} while (opcion < 1 || opcion > 7);
 		return opcion;
@@ -1061,7 +1087,7 @@ public class PrincipalTaller {
 			System.out.println("[5] Borrar un cliente por el dni.");
 			System.out.println("[6] Salir.");
 
-			opcion = Integer.parseInt(teclado.nextLine());
+			opcion = solicitarNumero("Introduce la opción:");
 
 		} while (opcion < 1 || opcion > 6);
 		return opcion;
@@ -1078,13 +1104,13 @@ public class PrincipalTaller {
 		int opcion = 0;
 
 		do {
-			System.out.println("PROYECTO HIBERNATE");
 			System.out.println("[1] Cliente");
 			System.out.println("[2] Coche");
 			System.out.println("[3] Revision");
 			System.out.println("[4] Salir");
 
-			opcion = Integer.parseInt(teclado.nextLine());
+			opcion = solicitarNumero("Introduce una opción: ");
+		
 
 		} while (opcion < 1 || opcion > 4);
 
@@ -1100,9 +1126,21 @@ public class PrincipalTaller {
 	private static int solicitarNumero(String msg) {
 
 		int numero = 0;
-
-		System.out.println(msg);
-		numero = Integer.parseInt(teclado.nextLine());
+		boolean esValido;
+		do {
+			try {
+				System.out.println(msg);
+				numero = Integer.parseInt(teclado.nextLine());
+				if (Character.isDigit(numero)) {
+					esValido = false;
+				} else {
+					esValido = true;
+				}
+			} catch (NumberFormatException e) {
+				System.err.println("Error. Dato incorrecto");
+				esValido = false;
+			}
+		} while (!esValido);
 
 		return numero;
 	}

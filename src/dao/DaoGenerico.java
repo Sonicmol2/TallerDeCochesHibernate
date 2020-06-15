@@ -32,8 +32,15 @@ public class DaoGenerico<T> {
 	public void borrar(T entidad) throws TallerException {
 
 		Session session = HibernateUtil.getSessionFactory().getCurrentSession();
-		session.beginTransaction();
-		session.delete(entidad);
-		session.getTransaction().commit();
+		
+		try{
+			session.beginTransaction();
+			session.delete(entidad);
+			session.getTransaction().commit();
+		} catch (Exception e) {
+			session.getTransaction().rollback();
+			System.out.println(e.getMessage() + "\n");
+		}
+		
 	}
 }

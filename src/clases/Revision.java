@@ -110,6 +110,10 @@ public class Revision implements Serializable{
 	public void setCoche(Coche coche) {
 		this.coche = coche;
 	}
+	
+	public void borrarCocheDeRevision(Coche coche) {
+		this.setCoche(null);
+	}
 
 	@Override
 	public int hashCode() {

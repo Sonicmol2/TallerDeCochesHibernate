@@ -19,7 +19,7 @@ public class ClienteDao extends DaoGenerico<Cliente> {
 	 * @param nombre de los clientes a buscar
 	 * @return una lista con todos los clientes con ese nombre
 	 */
-	public static List<Cliente> consultarClientesPorApellidos(String apellidos) {
+	public List<Cliente> consultarClientesPorApellidos(String apellidos) {
 
 		Session session = HibernateUtil.getSessionFactory().getCurrentSession();
 
@@ -38,7 +38,7 @@ public class ClienteDao extends DaoGenerico<Cliente> {
 	 * @param dni del cliente a buscar
 	 * @return devuelve el cliente con ese dni
 	 */
-	public static Cliente buscarClientePorDni(String dni) {
+	public Cliente buscarClientePorDni(String dni) {
 
 		Session session = HibernateUtil.getSessionFactory().getCurrentSession();
 
@@ -52,7 +52,7 @@ public class ClienteDao extends DaoGenerico<Cliente> {
 	 * 
 	 * @return devuelve una lista con todos los clientes
 	 */
-	public static List<Cliente> consultarTodosClientes() {
+	public List<Cliente> consultarTodosClientes() {
 
 		Session session = HibernateUtil.getSessionFactory().getCurrentSession();
 

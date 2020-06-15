@@ -9,11 +9,12 @@ import org.hibernate.SessionFactory;
 
 import clases.Cliente;
 import clases.Coche;
+import clases.Revision;
 import clases.TallerException;
 
 public class CocheDao extends DaoGenerico<Coche> {
 
-	public static List<Coche> consultarTodosLosCoches() {
+	public List<Coche> consultarTodosLosCoches() {
 
 		Session session = HibernateUtil.getSessionFactory().getCurrentSession();
 
@@ -27,19 +28,22 @@ public class CocheDao extends DaoGenerico<Coche> {
 
 	}
 
-	
-	public static Coche buscarCochePorMatricula(String matricula) throws TallerException {
+	public Coche buscarCochePorMatricula(String matricula) throws TallerException {
 
+		Coche coche;
 		Session session = HibernateUtil.getSessionFactory().getCurrentSession();
 
-		Coche coche = (Coche) session.createQuery("SELECT c FROM Coche c WHERE c.matricula = '" + matricula + "'").uniqueResult();
+		// Coche coche = (Coche) session.createQuery("SELECT c FROM Coche c WHERE
+		// c.matricula = '" + matricula + "'").uniqueResult();
+		// Session session2 = HibernateUtil.getSessionFactory().getCurrentSession();
+
+		coche = (Coche) session.get(Coche.class, matricula);
 
 		return coche;
 	}
 
-
 	public List<Coche> consultarCochesCliente(String dniCliente) {
-		
+
 		Session session = HibernateUtil.getSessionFactory().getCurrentSession();
 
 		List<Coche> listaCoches;
@@ -51,5 +55,4 @@ public class CocheDao extends DaoGenerico<Coche> {
 		return listaCoches;
 	}
 
-	
 }

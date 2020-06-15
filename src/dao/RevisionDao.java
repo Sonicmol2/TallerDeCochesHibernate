@@ -55,7 +55,7 @@ public class RevisionDao extends DaoGenerico<Revision> {
 		// Consulta las revisiones de un cliente
 		
 		String sentenciaHQL = "select r.coche.cliente.dni as DNI, r.coche.matricula as Matricula, r.idRevision as Id, r.fecha as Fecha, r.descripcion as Descripción, r.precioRevision as Precio  "
-				+ "from Revision r where r.coche.cliente.dni = '" + dni + "' order by r.fecha desc";
+				+ "from Revision r where r.coche.cliente.dni = '" + dni + "' order by r.fecha asc";
 		
 		Query query2 = session2.createQuery(sentenciaHQL);
 
